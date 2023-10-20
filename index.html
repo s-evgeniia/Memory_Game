@@ -14,25 +14,44 @@
   <script type="text/babel">
     const container = document.getElementById('root');
     const root = ReactDOM.createRoot(container);
-    root.render(<App images={images} visibleItems={visibleItems} finishedItems={finishedItems}/>);
+    root.render(<App images={images} />);
 
-    function App({images=[], visibleItems=[], finishedItems=[]}) {
+    function App({images=[]}) {
+      const finishedItems = []
+      const [stepsCount, setStepsCount] = React.useState(0)
 
+      const visibleItems = () => {
+        setStepsCount((i) => i + 1)
+      }
       return (
               <section className="game container">
+                <div className="steps">Шаг {stepsCount}</div>
                 <Grid images={images} visibleItems={visibleItems} finishedItems={finishedItems}/>
               </section>
       )
     }
 
+
     function Grid({images, visibleItems, finishedItems}) {
+
+      const [selectedItems, setSelected] = React.useState([])
+      const handleCardClick= (id) => {
+        if(selectedItems.includes(id)) {
+          return
+        }
+        setSelected((items) => [...items, id])
+        visibleItems()
+      }
+
       const cards = images.map((item) => (
               <Card
+                      id={item.id}
                       key={item.id}
                       url={item.url}
                       description={item.description}
-                      isVisible={visibleItems.includes(item.id)}
+                      isVisible={selectedItems.includes(item.id)}
                       isFinished={finishedItems.includes(item.id)}
+                      onCardClick={handleCardClick}
               />
       ))
       return (
@@ -42,9 +61,16 @@
       )
     }
 
-    function Card({url, description, isVisible = false, isFinished = true}) {
+    function Card({url, description, isVisible, isFinished, onCardClick, id}) {
+      const className = `card ${isVisible ? 'card-show' : ''} ${isFinished ? 'card-finished' : ''}`
+      const handleClick = () => {
+        if (isFinished) {
+          return;
+        }
+        onCardClick(id);
+      };
       return (
-        <li className={`card ${isVisible ? 'card-show' : ''} ${isFinished ? 'card-finished' : ''}`}>
+        <li className={className} onClick={handleClick}>
           <img
                   src={url}
                   width="204"
@@ -54,9 +80,6 @@
         </li>
       )
     }
-    // TODO: создайте корневой компонент приложения
-    // TODO: создайте компонент карточки
-    // TODO: передайте данные в компоненты
   </script>
 </body>
 </html>
