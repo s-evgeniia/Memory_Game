@@ -8,6 +8,7 @@
   <script src="vendor/react-dom.development.js"></script>
   <script src="vendor/babel.min.js"></script>
   <script src="data.js"></script>
+  <script src="settings.js"></script>
 </head>
 <body>
   <div id="root">Корневой элемент</div>
@@ -17,30 +18,86 @@
     root.render(<App images={images} />);
 
     function App({images=[]}) {
-      const finishedItems = []
+      const [finishedItems, setFinishedItems] = React.useState([])
       const [stepsCount, setStepsCount] = React.useState(0)
 
-      const visibleItems = () => {
+      const visibleItems = (firstItem, secondItem) => {
+        const firstImg = images.find(({id}) => id === firstItem)
+        const secondImg = images.find(({id}) => id === secondItem)
+        if(firstImg.url === secondImg.url) {
+          setFinishedItems((items) => [...items, firstItem, secondItem])
+        }
         setStepsCount((i) => i + 1)
       }
+
+      const handleRest = () => {
+        setFinishedItems([])
+        setStepsCount(0);
+      }
+
+      const isGameOver = finishedItems.length === images.length
+
       return (
               <section className="game container">
+                <Progress value={finishedItems.length/2} max={images.length/2}/>
                 <div className="steps">Шаг {stepsCount}</div>
                 <Grid images={images} visibleItems={visibleItems} finishedItems={finishedItems}/>
+                {isGameOver && (
+                        <Modal className="modal-box">
+                          <h3 className="modal-caption">Победа!</h3>
+                          <p className="modal-description">Вы собрали все пары за {stepsCount} шагов</p>
+                          <button onClick={handleRest} className="button modal-button" type="button">Новая игра</button>
+                        </Modal>
+                )}
               </section>
       )
     }
 
+    function Modal({children, className}) {
+      return (
+              <div className="modal">
+                <div className={`modal-box ${className}`}>
+                  {children}
+                </div>
+              </div>
+      )
+    }
+    function Progress({value, max}) {
+      return (
+              <>
+                <div className="progress-wrapper">
+                  <div className="progress" style={{width: `${value/max*100}%`}}></div>
+                </div>
+                <p className="progress-description">Открыто <span>{value}</span> / <span>{max}</span></p>
+              </>
+              )
 
-    function Grid({images, visibleItems, finishedItems}) {
+    }
+
+    function Grid({images, finishedItems, visibleItems}) {
 
       const [selectedItems, setSelected] = React.useState([])
       const handleCardClick= (id) => {
         if(selectedItems.includes(id)) {
           return
         }
-        setSelected((items) => [...items, id])
-        visibleItems()
+        switch (selectedItems.length) {
+          case 0:
+            setSelected([id]);
+            setTimeout(() => {
+              setSelected([]);
+            }, TIMEOUT)
+            break;
+          case 2:
+            setSelected([id]);
+            break;
+          case 1:
+            setSelected((items) => [...items, id]);
+            visibleItems(selectedItems[0], id);
+            break;
+            default:
+              setSelected([])
+        }
       }
 
       const cards = images.map((item) => (
