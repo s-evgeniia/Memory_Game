@@ -15,8 +15,73 @@
   <script type="text/babel">
     const container = document.getElementById('root');
     const root = ReactDOM.createRoot(container);
-    root.render(<App images={images} />);
+    root.render(<App images={images} results={results} />);
 
+    function App({images = [], results = []}) {
+      const [page, setPage] = React.useState(AppRoute.Game);
+      const [result, setResult] = React.useState(0)
+      const showResults =(stepsCount) => {
+        setResult(stepsCount)
+        setPage(AppRoute.Results)
+      }
+      const handleReset = () => {
+        setPage(AppRoute.Game)
+      }
+      const getPage = (route) => {
+        switch (route) {
+          case AppRoute.Game:
+            return <GamePage images={images} onShowResults={showResults}/>
+          case AppRoute.Results:
+            return <ResultsPage
+                    results={results}
+                    stepsCount={result}
+                    onResetGame={handleReset}
+            />
+          default:
+            return null;
+        }
+      };
+      return getPage(page)
+    }
+
+    function ResultsPage({results, stepsCount, onResetGame}) {
+      return (
+              <section className="result container">
+                <h2>Лучшие результаты:</h2>
+                <p>Вы завершили игру за <b>{stepsCount} шагов</b>, так держать!</p>
+                <ResultsTable current={stepsCount} results={results} />
+                <p>Хотите попробовать ещё раз?</p>
+                <button onClick={onResetGame} className="button result-button" type="button">Новая игра</button>
+              </section>
+      )
+    }
+    function ResultsTable({results, current}) {
+      const sortedResults = [
+              ...results,
+              {name: 'Ваш результат', stepsCount: current}
+            ].sort((a, b) => a.stepsCount - b.stepsCount);
+      const resultsRows = sortedResults.map(({name, stepsCount}, index) => (
+              <tr key={name} className={`result-table-row ${stepsCount === current ? 'active' : ''}`}>
+                <td>{index + 1}</td>
+                <td>{name}</td>
+                <td>{stepsCount}</td>
+              </tr>
+      ))
+      return (
+              <table className="result-table">
+                  <thead>
+                  <tr className="result-table-row">
+                    <th>Место</th>
+                    <th>Имя</th>
+                    <th>Шаги</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                    {resultsRows}
+                  </tbody>
+              </table>
+      )
+    }
     const useGame = (images) => {
       const [finishedItems, setFinishedItems] = React.useState([])
       const [stepsCount, setStepsCount] = React.useState(0)
@@ -30,29 +95,26 @@
         setStepsCount((i) => i + 1)
       }
 
-      const handleRest = () => {
-        setFinishedItems([])
-        setStepsCount(0);
-      }
-
-      const isGameOver = finishedItems.length === images.length
+      const isGameOver = finishedItems.length > 0 && finishedItems.length === images.length;
 
       return {
         finishedItems,
-        handleRest,
         stepsCount,
         visibleItems,
         isGameOver
       }
     }
-    function App({images=[]}) {
+    function GamePage({images=[], onShowResults}) {
       const {
         finishedItems,
-        handleRest,
         stepsCount,
         visibleItems,
         isGameOver
       } = useGame(images)
+
+      const handleResultsClick = () => {
+        onShowResults(stepsCount)
+      }
 
       return (
               <section className="game container">
@@ -67,7 +129,7 @@
                         <Modal>
                           <h3 className="modal-caption">Победа!</h3>
                           <p className="modal-description">Вы собрали все пары за {stepsCount} шагов</p>
-                          <button onClick={handleRest} className="button modal-button" type="button">Новая игра</button>
+                          <button onClick={handleResultsClick} className="button modal-button" type="button">Результаты</button>
                         </Modal>
                 )}
               </section>
@@ -113,7 +175,7 @@
               setSelected([]);
             }, TIMEOUT)
             break;
-            default:
+          default:
               setSelected([])
         }
       }
