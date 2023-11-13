@@ -7,6 +7,7 @@
   <script src="vendor/react.development.js"></script>
   <script src="vendor/react-dom.development.js"></script>
   <script src="vendor/babel.min.js"></script>
+  <script src="vendor/get-declension.min.umd.js"></script>
   <script src="data.js"></script>
   <script src="settings.js"></script>
 </head>
@@ -15,22 +16,33 @@
   <script type="text/babel">
     const container = document.getElementById('root');
     const root = ReactDOM.createRoot(container);
-    root.render(<App images={images} results={results} />);
+    root.render(<App getImages={getImages} results={results} />);
 
-    function App({images = [], results = []}) {
-      const [page, setPage] = React.useState(AppRoute.Game);
-      const [result, setResult] = React.useState(0)
+    function App({results = [], getImages}) {
+      const [page, setPage] = React.useState(AppRoute.Initial);
+      const [result, setResult] = React.useState(0);
+      const [images, setImages] = React.useState([])
+      const [typeOfGame, setTypeOfGame] = React.useState()
       const showResults =(stepsCount) => {
         setResult(stepsCount)
         setPage(AppRoute.Results)
       }
       const handleReset = () => {
+        setPage(AppRoute.Initial)
+      }
+
+      const handleStart = (type) => {
+        const images = getImages(type);
+        setImages(images)
         setPage(AppRoute.Game)
+        setTypeOfGame(type)
       }
       const getPage = (route) => {
         switch (route) {
+          case AppRoute.Initial:
+            return <InitialPage onStart={handleStart} />
           case AppRoute.Game:
-            return <GamePage images={images} onShowResults={showResults}/>
+            return <GamePage images={images} onShowResults={showResults} typeOfGame={typeOfGame}/>
           case AppRoute.Results:
             return <ResultsPage
                     results={results}
@@ -45,10 +57,16 @@
     }
 
     function ResultsPage({results, stepsCount, onResetGame}) {
+
+      const imagesDeclension = getDeclension({
+        count: stepsCount,
+        one: 'шаг', few: 'шага', many: 'шагов'
+      });
+
       return (
               <section className="result container">
                 <h2>Лучшие результаты:</h2>
-                <p>Вы завершили игру за <b>{stepsCount} шагов</b>, так держать!</p>
+                <p>Вы завершили игру за <b>{imagesDeclension}</b>, так держать!</p>
                 <ResultsTable current={stepsCount} results={results} />
                 <p>Хотите попробовать ещё раз?</p>
                 <button onClick={onResetGame} className="button result-button" type="button">Новая игра</button>
@@ -104,7 +122,7 @@
         isGameOver
       }
     }
-    function GamePage({images=[], onShowResults}) {
+    function GamePage({images, onShowResults, typeOfGame}) {
       const {
         finishedItems,
         stepsCount,
@@ -124,11 +142,12 @@
                         images={images}
                         visibleItems={visibleItems}
                         finishedItems={finishedItems}
+                        typeOfGame={typeOfGame}
                 />
                 {isGameOver && (
                         <Modal>
                           <h3 className="modal-caption">Победа!</h3>
-                          <p className="modal-description">Вы собрали все пары за {stepsCount} шагов</p>
+                          <p className="modal-description">Теперь давайте узнаем результат этой партии</p>
                           <button onClick={handleResultsClick} className="button modal-button" type="button">Результаты</button>
                         </Modal>
                 )}
@@ -157,7 +176,7 @@
 
     }
 
-    function Grid({images = [], finishedItems, visibleItems}) {
+    function Grid({images, finishedItems, visibleItems, typeOfGame}) {
 
       const [selectedItems, setSelected] = React.useState([])
       const handleCardClick= (id) => {
@@ -180,18 +199,18 @@
         }
       }
 
-      const cards = images.map((item) => (
-              <Card
-                      item={item}
-                      key={item.id}
-                      isVisible={selectedItems.includes(item.id)}
-                      isFinished={finishedItems.includes(item.id)}
-                      onCardClick={handleCardClick}
-              />
-      ))
       return (
-              <ul className="cards cards-theme-cars">
-              {cards}
+              <ul className={`cards cards-theme-${typeOfGame}`}>
+                {images.map((item) => (
+                        <Card
+                                item={item}
+                                key={item.id}
+                                isVisible={selectedItems.includes(item.id)}
+                                isFinished={finishedItems.includes(item.id)}
+                                onCardClick={handleCardClick}
+                        />
+                ))
+                }
               </ul>
       )
     }
@@ -212,6 +231,33 @@
                   alt={description}
           />
         </li>
+      )
+    }
+
+    function InitialPage({onStart}) {
+      const handleStart = (type) => {
+        onStart(type);
+      }
+
+      const buttons = GAME_TYPES.map(({icon, label, type}) => (
+              <button key={icon} onClick={() => handleStart(type)} className={`ico-button ico-button-${type}`} type="button">
+                {label}
+              </button>
+      ))
+      return (
+              <section className="rules container">
+                <h2>Добро пожаловать!</h2>
+                <p>Memory — игра для тренировки визуальной памяти</p>
+                <div className="rules-panel">
+                  <h3>Правила игры</h3>
+                  <ul className="rules-list">
+                    <li>В наборе есть множество карточек – по две штуки с одним и тем же рисунком.</li>
+                    <li>Нужно разложить карточки «рубашкой» вверх на столе, а затем переворачивать по две.</li>
+                    <li>Если они совпадают – игрок забирает их и получает ещё один ход.</li>
+                  </ul>
+                </div>
+                {buttons}
+              </section>
       )
     }
   </script>
