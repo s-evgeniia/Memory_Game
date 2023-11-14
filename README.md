@@ -1,4 +1,4 @@
-# Memory Match Game
+# Memory Game
 
 This project is a memory match game developed as part of my learning journey with React at HTML Academy. It's a fun and interactive game where the objective is to memorize different pictures and find their matching pairs.
 
